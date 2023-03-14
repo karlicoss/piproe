@@ -35,7 +35,12 @@ def main() -> None:
         shutil.copytree(path, tgt, symlinks=True, ignore=should_ignore)
         check_call(['pip3', 'install', '-e', tgt, *rest])
 
-    sp = Path(site.getusersitepackages())
+    # hmm, getusersitepackages isn't working under pyenv
+    if '--user' in sys.argv:
+        sp = Path(site.getusersitepackages())
+    else:
+        [sp] = map(Path, site.getsitepackages())
+    print("SITE:", sp, file=sys.stderr)
     patched = []
     for f in chain(sp.glob('*.egg-link'), [sp / 'easy-install.pth']):
         if not f.exists():
