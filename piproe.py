@@ -41,8 +41,11 @@ def main() -> None:
     else:
         [sp] = map(Path, site.getsitepackages())
     print("SITE:", sp, file=sys.stderr)
+    print(f"replacing {tgt} with {path}", file=sys.stderr)
     patched = []
-    for f in chain(sp.glob('*.egg-link'), [sp / 'easy-install.pth']):
+
+    # TODO not sure if need to remove old egg-links after switching to pyproject toml?
+    for f in chain(sp.glob('*.egg-link'), [sp / 'easy-install.pth'], sp.glob('__editable__.*.pth')):
         if not f.exists():
             continue
         ft = f.read_text()
