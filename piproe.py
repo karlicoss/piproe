@@ -26,17 +26,33 @@ def should_ignore(path: str, names: List[str]) -> List[str]:
 
 def main() -> None:
     p = argparse.ArgumentParser()
+    p.add_argument('--no-editable', action='store_false', dest='editable')  # meh
     p.add_argument('path', type=Path)
     args, rest = p.parse_known_args()
     path = args.path
 
+    user_install_requested = '--user' in sys.argv
+
     with TemporaryDirectory() as td:
         tgt = Path(td) / path.name
         shutil.copytree(path, tgt, symlinks=True, ignore=should_ignore)
-        check_call(['pip3', 'install', '-e', tgt, *rest])
+        meditable = ['--editable'] if args.editable else []
+        check_call([sys.executable, '-m', 'pip', 'install', *meditable, tgt, *rest])
+        # TODO need to infer the site from pip?
+
+    if not args.editable:
+        # no need to patch anything
+        return
+
+    # actual site might differ from requested site
+    # since pip falls back onto user site e.g. if we're not installing as root
+    from pip._internal.commands import install as pip_install
+    installed_into_user_site = pip_install.decide_user_install(
+        use_user_site=True if user_install_requested else None,
+    )
 
     # hmm, getusersitepackages isn't working under pyenv
-    if '--user' in sys.argv:
+    if installed_into_user_site:
         sp = Path(site.getusersitepackages())
     else:
         [sp] = map(Path, site.getsitepackages())
@@ -45,7 +61,12 @@ def main() -> None:
     patched = []
 
     # TODO not sure if need to remove old egg-links after switching to pyproject toml?
-    for f in chain(sp.glob('*.egg-link'), [sp / 'easy-install.pth'], sp.glob('__editable__.*.pth')):
+    for f in chain(
+            sp.glob('*.egg-link'),
+            [sp / 'easy-install.pth'],
+            sp.glob('__editable__.*.pth'),
+            sp.glob('*.dist-info/direct_url.json'),  # this is only used in pip freeze?
+    ):
         if not f.exists():
             continue
         ft = f.read_text()
