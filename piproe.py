@@ -33,11 +33,19 @@ def main() -> None:
 
     user_install_requested = '--user' in sys.argv
 
+    split = path.name.split('[')  # handle optional deps
+    name = split[0]
+    opts = ''
+    if len(split) == 2:
+        opts = '[' + split[1]
+    path = path.parent / name
+    assert path.exists()  # just in case
+
     with TemporaryDirectory() as td:
         tgt = Path(td) / path.name
         shutil.copytree(path, tgt, symlinks=True, ignore=should_ignore)
         meditable = ['--editable'] if args.editable else []
-        check_call([sys.executable, '-m', 'pip', 'install', *meditable, tgt, *rest])
+        check_call([sys.executable, '-m', 'pip', 'install', *rest, *meditable, str(tgt) + opts])
         # TODO need to infer the site from pip?
 
     if not args.editable:
