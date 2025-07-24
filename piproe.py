@@ -7,17 +7,16 @@ Useful in Docker containers, when you don't want them to pollute your repo with 
 """
 
 import argparse
-from pathlib import Path
-from tempfile import TemporaryDirectory
 import shutil
-from itertools import chain
-import sys
 import site
+import sys
+from itertools import chain
+from pathlib import Path
 from subprocess import check_call
-from typing import List
+from tempfile import TemporaryDirectory
 
 
-def should_ignore(path: str, names: List[str]) -> List[str]:
+def should_ignore(path: str, names: list[str]) -> list[str]:
     return [
         '.tox', '.mypy_cache', '.pytest_cache', '__pycache__',
         'node_modules',
@@ -39,7 +38,7 @@ def main() -> None:
     if len(split) == 2:
         opts = '[' + split[1]
     path = path.parent / name
-    assert path.exists()  # just in case
+    assert path.exists(), path  # just in case
 
     with TemporaryDirectory() as td:
         tgt = Path(td) / path.name
@@ -88,3 +87,4 @@ def main() -> None:
 
 if __name__ == '__main__':
     main()
+

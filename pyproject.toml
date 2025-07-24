@@ -1,0 +1,17 @@
+[project]
+dynamic = ["version"]  # version is managed by build backend
+name = "piproe"
+dependencies = []
+requires-python = ">=3.9"
+
+[build-system]
+requires = ["hatchling", "hatch-vcs"]
+build-backend = "hatchling.build"
+
+[tool.hatch.version]
+source = "vcs"
+
+[tool.hatch.version.raw-options]
+version_scheme = "python-simplified-semver"
+local_scheme = "dirty-tag"
+
