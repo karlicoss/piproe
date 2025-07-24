@@ -16,9 +16,12 @@ from subprocess import check_call
 from tempfile import TemporaryDirectory
 
 
-def should_ignore(path: str, names: list[str]) -> list[str]:
+def should_ignore(path: str, names: list[str]) -> list[str]:  # noqa: ARG001
     return [
-        '.tox', '.mypy_cache', '.pytest_cache', '__pycache__',
+        '.tox',
+        '.mypy_cache',
+        '.pytest_cache',
+        '__pycache__',
         'node_modules',
     ]
 
@@ -67,19 +70,31 @@ def main() -> None:
     print(f"replacing {tgt} with {path}", file=sys.stderr)
     patched = []
 
-    # TODO not sure if need to remove old egg-links after switching to pyproject toml?
     for f in chain(
-            sp.glob('*.egg-link'),
-            [sp / 'easy-install.pth'],
-            sp.glob('__editable__.*.pth'),
-            sp.glob('*.dist-info/direct_url.json'),  # this is only used in pip freeze?
+        sp.glob('*.egg-link'),
+        [sp / 'easy-install.pth'],
+        sp.glob('__editable__.*.pth'),
+        sp.glob('*.dist-info/direct_url.json'),  # this is only used in pip freeze?
     ):
-        if not f.exists():
+        if not f.exists():  # todo why wouldn't it exist??
             continue
         ft = f.read_text()
-        if str(tgt) in ft:
-            f.write_text(ft.replace(str(tgt), str(path)))
-            patched.append(f)
+        if str(tgt) not in ft:
+            continue
+        f.write_text(ft.replace(str(tgt), str(path)))
+        patched.append(f)
+
+    # seems like editable packages installed with setuptools end up with a .py generated finder?
+    # see here for more info
+    # https://github.com/pypa/setuptools/blob/9cc2f5c05c333cd4cecd2c0d9e7c5e208f2a3148/setuptools/command/editable_wheel.py#L824-L826
+    for f in sp.glob('__editable__*_finder.py'):
+        ft = f.read_text()
+        if f"'{tgt}" not in ft:
+            continue
+        # replace occurences starting with a single quote, just for safety
+        f.write_text(ft.replace(f"'{tgt!s}", f"'{path!s}"))
+        patched.append(f)
+
     # todo assert no other tmp occurences in site packages dir?
     if len(patched) == 0:
         raise RuntimeError('Nothing was patched.. suspicious')
