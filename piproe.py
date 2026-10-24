@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-Script to install pip packages in editable mode when they happen to be on a read only filesystem.
+Script to install setuptools packages in editable mode when they happen to be on a read only filesystem.
 Currently it isn't possible, see a related issue: https://github.com/pypa/pip/issues/3930
 
-Useful in Docker containers, when you don't want them to pollute your repo with extra files
+Useful in Docker containers, when you don't want them to pollute your repo with extra files, or your code is mounted as read only.
 """
 
 import argparse
